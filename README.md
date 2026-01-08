@@ -19,7 +19,9 @@ This project is primarily for learning and experimentation, but the implementati
 ## Usage
 
 ### Create a Skip List 
+```
 list := skiplist.NewSkipList[int, string]()
+```
 
 ### Insert
 ```
@@ -36,5 +38,7 @@ if node != nil {
 }
 ```
 ### Remove
+```
 list.Remove(5)
+```
 
