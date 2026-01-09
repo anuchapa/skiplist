@@ -12,7 +12,7 @@ This project is primarily for learning and experimentation, but the implementati
 - Average O(log n) time complexity
 - Insert / Find / Remove
 - Level-based traversal
-- Convert to map, slice of keys, or values
+- Convert to slice of keys, or values
 - Deterministic structure with randomized levels
 
 
@@ -20,7 +20,7 @@ This project is primarily for learning and experimentation, but the implementati
 
 ### Create a Skip List 
 ```
-list := skiplist.NewSkipList[int, string]()
+list := NewSkipList[int, string](DefaultCmp[int])
 ```
 
 ### Insert

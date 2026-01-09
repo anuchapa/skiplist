@@ -7,21 +7,24 @@ import (
 	"time"
 )
 
-type SkipNode[K cmp.Ordered, V any] struct {
+type SkipNode[K any, V any] struct {
 	Key     K
 	Value   V
 	Forward []*SkipNode[K, V]
 }
 
-func NewSkipNode[K cmp.Ordered, V any](key K, value V, level int) *SkipNode[K, V] {
+func NewSkipNode[K any, V any](key K, value V, level int) *SkipNode[K, V] {
 	return &SkipNode[K, V]{Key: key, Value: value, Forward: make([]*SkipNode[K, V], level+1)}
 }
 
-type SkipList[K cmp.Ordered, V any] struct {
+type comParator[K any] func(a, b K) int
+
+type SkipList[K any, V any] struct {
 	Head   *SkipNode[K, V]
 	level  int
 	size   int
 	random *rand.Rand
+	cmp    comParator[K]
 }
 
 func (s *SkipList[K, V]) Level() int {
@@ -32,23 +35,31 @@ func (s *SkipList[K, V]) Size() int {
 	return s.size
 }
 
-func NewSkipList[K cmp.Ordered, V any]() *SkipList[K, V] {
+func DefaultCmp[K cmp.Ordered](a, b K) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func NewSkipList[K any, V any](cmp comParator[K]) *SkipList[K, V] {
 	var zeroKey K
 	var zeroValue V
+	if cmp == nil {
+		panic("SkipList comparator cannot be nil")
+	}
+
 	return &SkipList[K, V]{
 		Head:   NewSkipNode(zeroKey, zeroValue, 0),
 		level:  -1,
 		size:   0,
 		random: rand.New(rand.NewSource(time.Now().UnixNano())),
+		cmp:    cmp,
 	}
-}
-
-func NewSkipListMap[K cmp.Ordered, V any](maps map[K]V) *SkipList[K, V] {
-	list := NewSkipList[K, V]()
-	for k, v := range maps {
-		list.Insert(k, v)
-	}
-	return list
 }
 
 func (s *SkipList[K, V]) Get(index int, level int) (any, error) {
@@ -102,30 +113,15 @@ func (s *SkipList[K, V]) Values(level int) []V {
 	return values
 }
 
-func (s *SkipList[K, V]) ToMap(level int) map[K]V {
-	if level > s.level {
-		panic(fmt.Sprintf("level %v out of range %v", level, s.level))
-	}
-
-	maps := map[K]V{}
-	x := s.Head
-	for cur := x.Forward[level]; cur != nil; {
-		maps[cur.Key] = cur.Value
-		cur = cur.Forward[level]
-	}
-
-	return maps
-}
-
 func (s *SkipList[K, V]) Find(key K) *SkipNode[K, V] {
 	x := s.Head
 	for i := s.level; i >= 0; i-- {
-		for x.Forward[i] != nil && x.Forward[i].Key < key {
+		for x.Forward[i] != nil && s.cmp(x.Forward[i].Key, key) < 0 {
 			x = x.Forward[i]
 		}
 	}
 	x = x.Forward[0]
-	if x != nil && x.Key == key {
+	if x != nil && s.cmp(x.Key, key) == 0 {
 		return x
 	} else {
 		return nil
@@ -142,14 +138,14 @@ func (s *SkipList[K, V]) Insert(key K, value V) {
 	update := make([]*SkipNode[K, V], s.level+1)
 	x := s.Head
 	for i := s.level; i >= 0; i-- {
-		for x.Forward[i] != nil && x.Forward[i].Key < key {
+		for x.Forward[i] != nil && s.cmp(x.Forward[i].Key, key) < 0 {
 			x = x.Forward[i]
 		}
 		update[i] = x
 	}
 
 	x = x.Forward[0]
-	if x != nil && x.Key == key {
+	if x != nil && s.cmp(x.Key, key) == 0 {
 		x.Value = value
 		return
 	}
@@ -168,7 +164,7 @@ func (s *SkipList[K, V]) Remove(key K) {
 	x := s.Head
 	update := make([]*SkipNode[K, V], s.level+1)
 	for i := s.level; i >= 0; i-- {
-		for x.Forward[i] != nil && x.Forward[i].Key < key {
+		for x.Forward[i] != nil && s.cmp(x.Forward[i].Key, key) < 0 {
 			x = x.Forward[i]
 		}
 		update[i] = x
@@ -183,7 +179,7 @@ func (s *SkipList[K, V]) Remove(key K) {
 			continue
 		}
 
-		if curr.Key != key {
+		if s.cmp(curr.Key, key) != 0 {
 			continue
 		}
 
