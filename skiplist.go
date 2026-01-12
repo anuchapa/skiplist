@@ -129,6 +129,19 @@ func (s *SkipList[K, V]) Find(key K) *SkipNode[K, V] {
 }
 
 func (s *SkipList[K, V]) Insert(key K, value V) {
+
+	if k,ok := any(key).([]byte) ; ok {
+		cp := make([]byte,len(k))
+		copy(cp,k)
+		key = any(cp).(K)
+	}
+
+	if v,ok := any(key).([]byte) ; ok {
+		cp := make([]byte,len(v))
+		copy(cp,v)
+		value = any(cp).(V)
+	}
+
 	newlevel := s.randomlevel()
 
 	if newlevel > s.level {
