@@ -136,7 +136,7 @@ func (s *SkipList[K, V]) Insert(key K, value V) {
 		key = any(cp).(K)
 	}
 
-	if v,ok := any(key).([]byte) ; ok {
+	if v,ok := any(value).([]byte) ; ok {
 		cp := make([]byte,len(v))
 		copy(cp,v)
 		value = any(cp).(V)
